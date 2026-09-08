@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="violet">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kinematic — AI biomechanics analysis for athletes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="violet"] {
+    --bg: #08060d; --bg-raised: #100b1c;
+    --accent-deep: #2a1458; --accent: #7c3aed; --accent-neon: #b98bff; --accent-bright: #d9c2ff;
+    --ink: #f3eefc; --ink-mute: #a79cc4; --ink-faint: #6c6285;
+    --line: rgba(185, 139, 255, 0.14); --btn-text: #100621; --status-dot: #7effa0;
+  }
+  [data-theme="cyan"] {
+    --bg: #040d12; --bg-raised: #091a24;
+    --accent-deep: #0e3746; --accent: #008fa8; --accent-neon: #00e5ff; --accent-bright: #a7f7ff;
+    --ink: #e6faff; --ink-mute: #81aeb8; --ink-faint: #43666e;
+    --line: rgba(0, 229, 255, 0.16); --btn-text: #02151c; --status-dot: #00ffaa;
+  }
+  [data-theme="amber"] {
+    --bg: #0e0904; --bg-raised: #1b1208;
+    --accent-deep: #4d2600; --accent: #ea580c; --accent-neon: #ff9233; --accent-bright: #ffd4a8;
+    --ink: #fff7ed; --ink-mute: #c9ad93; --ink-faint: #755f4c;
+    --line: rgba(255, 146, 51, 0.16); --btn-text: #1f0b00; --status-dot: #ffde59;
+  }
+  [data-theme="emerald"] {
+    --bg: #040e09; --bg-raised: #081a12;
+    --accent-deep: #0f3f2a; --accent: #059669; --accent-neon: #10b981; --accent-bright: #a7f3d0;
+    --ink: #ecfdf5; --ink-mute: #8fb9a4; --ink-faint: #446a56;
+    --line: rgba(16, 185, 129, 0.16); --btn-text: #021a0e; --status-dot: #34d399;
+  }
+  [data-theme="crimson"] {
+    --bg: #0d0407; --bg-raised: #1c0910;
+    --accent-deep: #4a0d20; --accent: #e11d48; --accent-neon: #fb7185; --accent-bright: #fecdd3;
+    --ink: #fff1f2; --ink-mute: #bfa3ab; --ink-faint: #704d57;
+    --line: rgba(251, 113, 133, 0.16); --btn-text: #210209; --status-dot: #f43f5e;
+  }
+
+  *{box-sizing:border-box; transition: background-color .25s ease, border-color .25s ease, color .25s ease;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Inter', sans-serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom: 74px;
+  }
+  h1,h2,h3,h4{font-family:'Space Grotesk', sans-serif; font-weight:600; letter-spacing:-0.01em; margin:0;}
+  a{color:inherit;text-decoration:none;}
+  img,svg{display:block;max-width:100%;}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px;}
+  :focus-visible{outline:2px solid var(--accent-neon);outline-offset:3px;border-radius:6px;}
+
+  .field{
+    position:relative;
+    background-image: radial-gradient(var(--line) 1.4px, transparent 1.4px);
+    background-size: 26px 26px;
+    background-position: -6px -6px;
+  }
+  .orb{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;}
+
+  .theme-dock{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+    background:var(--bg-raised); border:1px solid var(--line);
+    padding:9px 15px; border-radius:999px;
+    display:flex; align-items:center; gap:11px; z-index:100;
+    box-shadow: 0 16px 36px rgba(0,0,0,.55);
+    backdrop-filter: blur(12px);
+  }
+  .theme-dock span{
+    font-size:11px; font-weight:600; color:var(--ink-mute);
+    text-transform:uppercase; letter-spacing:.06em; margin-right:2px;
+  }
+  .theme-btn{
+    width:20px; height:20px; border-radius:50%;
+    border:2px solid transparent; cursor:pointer; padding:0;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .theme-btn:hover{transform:scale(1.15);}
+  .theme-btn.active{border-color:var(--ink); transform:scale(1.15);}
+  .tb-violet{background:#7c3aed;} .tb-cyan{background:#00c2d6;}
+  .tb-amber{background:#ea580c;} .tb-emerald{background:#059669;} .tb-crimson{background:#e11d48;}
+
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(8,6,13,0.85); backdrop-filter: blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  nav.wrap{display:flex; align-items:center; justify-content:space-between; height:68px;}
+  .logo{display:flex; align-items:center; gap:9px; font-family:'Space Grotesk', sans-serif; font-size:18px; font-weight:600;}
+  .logo .mark{width:22px;height:22px;color:var(--accent-neon);}
+  .navlinks{display:flex; align-items:center; gap:34px;}
+  .navlinks a{font-size:14.5px; color:var(--ink-mute); transition:color .15s ease;}
+  .navlinks a:hover{color:var(--ink);}
+  .navlinks .cta-small{display:none;}
+  @media(min-width:720px){
+    .navlinks .cta-small{
+      display:inline-flex; align-items:center; gap:6px;
+      background:var(--accent); color:#fff; padding:9px 18px;
+      border-radius:999px; font-weight:500; font-size:14px;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .navlinks .cta-small:hover{transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,0,0,.45);}
+  }
+  @media(max-width:720px){ .navlinks a:not(.cta-small):not(:last-child){display:none;} }
+
+  .hero{padding: 96px 0 88px; overflow:hidden;}
+  .hero .orb-a{ width:520px; height:520px; background:var(--accent-deep); top:-220px; left:-140px; opacity:.55;}
+  .hero .orb-b{ width:420px; height:420px; background:var(--accent); top:60px; right:-160px; opacity:.35;}
+  .hero-grid{position:relative; z-index:1; display:grid; grid-template-columns:1fr; gap:56px; align-items:center;}
+  @media(min-width:960px){ .hero-grid{grid-template-columns: 1.05fr 0.95fr;} }
+
+  .eyebrow-tag{
+    display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--accent-bright);
+    background: rgba(255,255,255,0.04); border:1px solid var(--line);
+    padding:6px 13px 6px 11px; border-radius:999px; margin-bottom:22px;
+  }
+  .eyebrow-tag svg{width:14px;height:14px;}
+  .hero h1{font-size:clamp(34px, 5.6vw, 56px); line-height:1.06;}
+  .hero h1 em{font-style:normal; color:var(--accent-neon);}
+  .hero p.lede{margin-top:22px; font-size:17.5px; color:var(--ink-mute); max-width:52ch;}
+  .hero-actions{margin-top:34px; display:flex; align-items:center; gap:22px; flex-wrap:wrap;}
+  .btn-primary{
+    display:inline-flex; align-items:center; gap:10px;
+    background: var(--accent-neon); color:var(--btn-text);
+    font-weight:600; font-size:15px; padding:14px 24px; border-radius:999px; border:none; cursor:pointer;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  .btn-primary svg{width:17px;height:17px; transition: transform .2s ease;}
+  .btn-primary:hover{background:var(--accent-bright); box-shadow:0 10px 30px rgba(0,0,0,.35); transform:translateY(-1px);}
+  .btn-primary:hover svg{transform:translateX(4px);}
+  .btn-ghost{font-size:15px; color:var(--ink-mute); font-weight:500; border-bottom:1px solid transparent; transition: color .15s ease, border-color .15s ease;}
+  .btn-ghost:hover{color:var(--ink); border-color:var(--ink-faint);}
+  .hero-proof{margin-top:44px; display:flex; gap:34px; flex-wrap:wrap;}
+  .hero-proof div{font-size:13px; color:var(--ink-faint);}
+  .hero-proof strong{display:block; font-family:'Space Grotesk',sans-serif; font-size:24px; color:var(--ink); font-weight:600;}
+
+  .kinetic-panel{
+    position:relative; background: linear-gradient(180deg, var(--accent-deep), var(--bg-raised));
+    border:1px solid var(--line); border-radius:22px; padding:26px;
+  }
+  .kinetic-panel .panel-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}
+  .panel-head .tag{font-size:12px; color:var(--ink-faint); display:flex; align-items:center; gap:7px;}
+  .panel-head .dot{width:7px;height:7px;border-radius:50%;background:var(--status-dot);}
+  .panel-head .score{font-family:'Space Grotesk',sans-serif; font-size:13px; color:var(--accent-bright);}
+
+  section{padding:88px 0;}
+  .section-head{max-width:60ch; margin-bottom:52px;}
+  .section-head .kicker{font-size:13px; color:var(--accent-neon); font-weight:600; margin-bottom:12px; display:block;}
+  .section-head h2{font-size:clamp(26px, 3.4vw, 36px);}
+  .section-head p{margin-top:14px; color:var(--ink-mute); font-size:15.5px;}
+
+  .steps{display:flex; flex-direction:column; border-top:1px solid var(--line);}
+  .step{
+    display:grid; grid-template-columns: 1fr; gap:22px;
+    padding:36px 0; border-bottom:1px solid var(--line);
+    align-items:center;
+  }
+  @media(min-width:760px){ .step{grid-template-columns: 64px 1fr 200px;} }
+  .step .num{font-family:'Space Grotesk',sans-serif; font-size:14px; color:var(--ink-faint); padding-top:3px;}
+  .step h3{font-size:19px; margin-bottom:8px;}
+  .step p{color:var(--ink-mute); font-size:15px; margin:0;}
+  .photo-slot{
+    width:100%; aspect-ratio: 4/3; border-radius:14px;
+    border:1px dashed var(--line);
+    background: linear-gradient(160deg, var(--accent-deep) 0%, var(--bg-raised) 100%);
+    display:flex; align-items:center; justify-content:center;
+    position:relative; overflow:hidden;
+  }
+  .photo-slot::before{
+    content:''; position:absolute; inset:0;
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 14px 14px; opacity:.5;
+  }
+  .photo-slot span{
+    position:relative; font-size:11.5px; color:var(--ink-faint);
+    text-align:center; padding:0 14px; font-family:'Space Grotesk',sans-serif;
+    letter-spacing:.02em;
+  }
+
+  .feature-list{display:grid; grid-template-columns:1fr; gap:0; border-top:1px solid var(--line);}
+  @media(min-width:760px){ .feature-list{grid-template-columns: 1fr 1fr;} }
+  .feature-item{display:flex; gap:14px; padding:22px 0; border-bottom:1px solid var(--line);}
+  @media(min-width:760px){
+    .feature-item:nth-child(odd){padding-right:32px;}
+    .feature-item:nth-child(even){padding-left:32px; border-left:1px solid var(--line);}
+  }
+  .feature-item .check{flex:none; width:22px; height:22px; color:var(--accent-neon); margin-top:2px;}
+  .feature-item h4{font-size:16px; font-weight:600; margin:0 0 5px;}
+  .feature-item p{margin:0; font-size:14.5px; color:var(--ink-mute);}
+
+  .price-table{width:100%; border-collapse:collapse; border:1px solid var(--line); border-radius:18px; overflow:hidden;}
+  .price-table th, .price-table td{text-align:left; padding:16px 18px; border-bottom:1px solid var(--line); font-size:14.5px;}
+  .price-table thead th{background: var(--bg-raised); vertical-align:top; padding-top:26px; padding-bottom:26px;}
+  .plan-name{font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600;}
+  .plan-price{margin-top:10px; font-family:'Space Grotesk',sans-serif; font-size:26px;}
+  .plan-price span{font-size:13px; color:var(--ink-faint); font-weight:400; font-family:'Inter',sans-serif;}
+  th.featured{position:relative; background: linear-gradient(180deg, var(--accent-deep), var(--bg-raised) 70%);}
+  th.featured .badge{
+    position:absolute; top:12px; right:14px; font-size:10.5px; letter-spacing:.02em;
+    color:var(--accent-bright); background:rgba(255,255,255,.08);
+    border:1px solid var(--line); padding:3px 9px; border-radius:999px;
+  }
+  .price-table td:first-child{color:var(--ink-mute); width:34%;}
+  .price-table td:not(:first-child), .price-table th:not(:first-child){text-align:center; width:22%;}
+  .cellcheck{width:17px; height:17px; color:var(--accent-neon); margin:0 auto;}
+  .celldash{color:var(--ink-faint);}
+  .plan-cta{
+    display:inline-block; margin-top:16px; font-size:13.5px; font-weight:500;
+    background:rgba(255,255,255,.06); border:1px solid var(--line);
+    padding:8px 16px; border-radius:999px; transition: background .15s ease;
+  }
+  th.featured .plan-cta{background:var(--accent-neon); color:var(--btn-text); border-color:transparent; font-weight:600;}
+  .plan-cta:hover{background:rgba(255,255,255,.12);}
+  th.featured .plan-cta:hover{background:var(--accent-bright);}
+  .price-note{margin-top:18px; font-size:13px; color:var(--ink-faint);}
+
+  .cta-band{position:relative; text-align:center; padding:96px 0; overflow:hidden;}
+  .cta-band .orb-c{width:600px;height:400px; background:var(--accent-deep); top:-120px; left:50%; transform:translateX(-50%); opacity:.6;}
+  .cta-band h2{position:relative; z-index:1; font-size:clamp(28px,4.2vw,42px); max-width:22ch; margin:0 auto;}
+  .cta-band p{position:relative; z-index:1; margin-top:16px; color:var(--ink-mute); font-size:16px;}
+  .cta-band .btn-primary{position:relative; z-index:1; margin-top:30px;}
+
+  footer{border-top:1px solid var(--line); padding:40px 0;}
+  footer .wrap{display:flex; flex-wrap:wrap; gap:18px; align-items:center; justify-content:space-between; font-size:13px; color:var(--ink-faint);}
+  footer .flinks{display:flex; gap:22px;}
+  footer .flinks a{color:var(--ink-faint); transition:color .15s ease;}
+  footer .flinks a:hover{color:var(--ink-mute);}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+
+  /* Payment modal */
+  .pay-overlay{
+    position:fixed; inset:0; z-index:200;
+    background:rgba(4,3,8,.72);
+    backdrop-filter: blur(4px);
+    display:none; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .pay-overlay.open{display:flex;}
+  .pay-modal{
+    width:100%; max-width:360px;
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:28px;
+    position:relative;
+  }
+  .pay-close{
+    position:absolute; top:16px; right:16px;
+    width:28px; height:28px; border-radius:50%;
+    border:1px solid var(--line); background:transparent;
+    color:var(--ink-mute); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .pay-close:hover{color:var(--ink);}
+  .pay-modal h3{font-size:18px; margin-bottom:4px;}
+  .pay-modal .pay-plan{font-size:13px; color:var(--ink-mute); margin-bottom:20px;}
+  .pay-amount{
+    font-family:'Space Grotesk',sans-serif; font-size:32px; margin-bottom:4px;
+  }
+  .pay-amount span{font-size:13px; color:var(--ink-faint); font-family:'Inter',sans-serif; font-weight:400;}
+  .pay-upi-id{
+    font-size:13px; color:var(--ink-mute); margin-bottom:22px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .pay-upi-id code{
+    background:rgba(255,255,255,.06); padding:3px 8px; border-radius:6px;
+    color:var(--ink); font-family:'Space Grotesk',sans-serif; font-size:12.5px;
+  }
+  #payQr{
+    display:flex; justify-content:center; align-items:center;
+    background:#fff; border-radius:14px; padding:14px; margin-bottom:20px;
+    width:180px; height:180px; margin-left:auto; margin-right:auto;
+  }
+  .pay-app-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; background:var(--accent-neon); color:var(--btn-text);
+    font-weight:600; font-size:14.5px; padding:13px; border-radius:999px;
+    border:none; cursor:pointer; margin-bottom:10px;
+  }
+  .pay-app-btn:hover{background:var(--accent-bright);}
+  .pay-note{font-size:11.5px; color:var(--ink-faint); text-align:center; line-height:1.5;}
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <a href="#top" class="logo">
+      <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.9 4.9l2.8 2.8"/><path d="M16.3 16.3l2.8 2.8"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.9 19.1l2.8-2.8"/><path d="M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="3"/></svg>
+      Kinematic
+    </a>
+    <div class="navlinks">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#" class="cta-small">Start analyzing</a>
+    </div>
+  </nav>
+</header>
+
+<main id="top">
+
+  <section class="hero field">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg>
+          Built on frame-by-frame movement AI
+        </span>
+        <h1>Every rep, read <em>and corrected</em>, like a coach on the platform.</h1>
+        <p class="lede">Upload a squat, a smash, a sprint. Kinematic maps the joint angles and kinetic chain, flags exactly where form breaks down, and tells you the specific correction for next set.</p>
+        <div class="hero-actions">
+          <button class="btn-primary" type="button">
+            Analyze your first video
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+          </button>
+          <a href="#how" class="btn-ghost">See how correction works</a>
+        </div>
+        <div class="hero-proof">
+          <div><strong>40+</strong>movement patterns supported</div>
+          <div><strong>94%</strong>average tracking confidence</div>
+          <div><strong>&lt;60s</strong>from upload to correction cues</div>
+        </div>
+      </div>
+
+      <div class="kinetic-panel">
+        <div class="panel-head">
+          <span class="tag"><span class="dot"></span>Heavy Barbell Back Squat</span>
+          <span class="score">Efficiency 94.2%</span>
+        </div>
+        <svg viewBox="0 0 320 300" width="100%" height="auto">
+          <defs>
+            <radialGradient id="glow" cx="50%" cy="45%" r="60%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <circle cx="160" cy="140" r="130" fill="url(#glow)"/>
+          <g stroke="var(--accent-bright)" stroke-width="2.4" stroke-linecap="round" fill="none">
+            <circle cx="160" cy="48" r="16" stroke="var(--accent-neon)"/>
+            <path d="M160 64 L160 140"/>
+            <path d="M160 84 L120 108"/>
+            <path d="M160 84 L200 108"/>
+            <path d="M160 140 L128 190"/>
+            <path d="M128 190 L118 244"/>
+            <path d="M160 140 L192 190"/>
+            <path d="M192 190 L202 244"/>
+          </g>
+          <g fill="var(--accent-neon)">
+            <circle cx="160" cy="140" r="3.5"/>
+            <circle cx="128" cy="190" r="3.5"/>
+            <circle cx="192" cy="190" r="3.5"/>
+            <circle cx="118" cy="244" r="3.5"/>
+            <circle cx="202" cy="244" r="3.5"/>
+          </g>
+          <g font-family="Space Grotesk, sans-serif" font-size="12" fill="var(--ink)">
+            <text x="214" y="194">135.2°</text>
+            <text x="70" y="194" text-anchor="end">142.8°</text>
+          </g>
+          <g stroke="var(--accent-neon)" stroke-width="1" stroke-dasharray="2 3">
+            <path d="M198 190 a10 10 0 0 1 6 0"/>
+            <path d="M122 190 a10 10 0 0 0 -6 0"/>
+          </g>
+        </svg>
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-faint); padding-top:6px;">
+          <span>Kinetic links tracked: 4</span>
+          <span>Phase: 10%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">How it works</span>
+        <h2>From footage to correction, in three passes.</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="num">01</span>
+          <div>
+            <h3>Upload the clip</h3>
+            <p>Drop in a squat, a jump smash, a sprint start — any movement with a clean side or front angle.</p>
+          </div>
+          <div class="photo-slot"><span>Your photo here —<br>e.g. squat setup</span></div>
+        </div>
+        <div class="step">
+          <span class="num">02</span>
+          <div>
+            <h3>Kinematic maps the chain</h3>
+            <p>The model tracks joints across every frame and measures angles at the moments that matter most.</p>
+          </div>
+          <div class="photo-slot"><span>Your photo here —<br>e.g. tracked movement</span></div>
+        </div>
+        <div class="step">
+          <span class="num">03</span>
+          <div>
+            <h3>Get correction, not just a score</h3>
+            <p>A plain-language cue for the exact phase where form broke down — what to change before the next rep.</p>
+          </div>
+          <div class="photo-slot"><span>Your photo here —<br>e.g. corrected form</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="field">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">What you get</span>
+        <h2>Built to correct form, not just describe it.</h2>
+        <p>Kinematic focuses on the mechanics that actually change outcomes — not vanity stats.</p>
+      </div>
+      <div class="feature-list">
+        <div class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><h4>Real-time correction cues</h4><p>Plain-language fixes tied to the exact phase and joint where the movement broke down.</p></div>
+        </div>
+        <div class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><h4>Joint angle tracking</h4><p>Frame-accurate angles at the hip, knee, elbow, and shoulder, plotted across the movement.</p></div>
+        </div>
+        <div class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><h4>Kinetic chain efficiency</h4><p>A single score for how well force transfers through the chain, ground to release.</p></div>
+        </div>
+        <div class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><h4>Sport-specific libraries</h4><p>Presets tuned for weightlifting, racket sports, and sprinting — not one generic pose model.</p></div>
+        </div>
+        <div class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><h4>Session archive</h4><p>Every analysis is saved, so you can track whether a correction actually stuck week to week.</p></div>
+        </div>
+        <div class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><h4>Exportable reports</h4><p>Send a clean summary with correction notes to a coach or physio.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Pricing</span>
+        <h2>Pick a tier by how often you train.</h2>
+      </div>
+      <table class="price-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>
+              <div class="plan-name">Starter</div>
+              <div class="plan-price">$0<span>/mo</span></div>
+              <a href="#" class="plan-cta">Get started</a>
+            </th>
+            <th class="featured">
+              <span class="badge">Most used</span>
+              <div class="plan-name">Athlete</div>
+              <div class="plan-price">$19<span>/mo</span></div>
+              <a href="#" class="plan-cta" onclick="openPay('Athlete plan', 1599); return false;">Start free trial</a>
+            </th>
+            <th>
+              <div class="plan-name">Team</div>
+              <div class="plan-price">$49<span>/mo</span></div>
+              <a href="#" class="plan-cta" onclick="openPay('Team plan', 4099); return false;">Talk to us</a>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Analyses per month</td><td>3</td><td>Unlimited</td><td>Unlimited</td></tr>
+          <tr><td>Movement library</td><td>Core lifts only</td><td>Full library</td><td>Full library</td></tr>
+          <tr>
+            <td>Joint angle tracking</td>
+            <td><svg class="cellcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></td>
+            <td><svg class="cellcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></td>
+            <td><svg class="cellcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></td>
+          </tr>
+          <tr>
+            <td>Real-time correction cues</td>
+            <td><span class="celldash">—</span></td>
+            <td><svg class="cellcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></td>
+            <td><svg class="cellcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></td>
+          </tr>
+          <tr>
+            <td>Session archive &amp; trends</td>
+            <td><span class="celldash">—</span></td>
+            <td><svg class="cellcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></td>
+            <td><svg class="cellcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></td>
+          </tr>
+          <tr><td>Seats for coaches &amp; athletes</td><td>1</td><td>1</td><td>Up to 25</td></tr>
+          <tr>
+            <td>Shared team archive</td>
+            <td><span class="celldash">—</span></td>
+            <td><span class="celldash">—</span></td>
+            <td><svg class="cellcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="price-note">Prices shown in USD. Annual billing available at a reduced rate.</p>
+    </div>
+  </section>
+
+  <section class="cta-band field">
+    <span class="orb orb-c"></span>
+    <div class="wrap">
+      <h2>Stop guessing what broke down in the lift.</h2>
+      <p>Upload one clip and get the correction, not just the diagnosis.</p>
+      <button class="btn-primary" type="button">
+        Analyze your first video
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Kinematic.</span>
+    <div class="flinks">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+  </div>
+</footer>
+
+<div class="theme-dock" role="group" aria-label="Color theme">
+  <span>Theme</span>
+  <button class="theme-btn tb-violet active" data-theme="violet" aria-label="Violet theme"></button>
+  <button class="theme-btn tb-cyan" data-theme="cyan" aria-label="Cyan theme"></button>
+  <button class="theme-btn tb-amber" data-theme="amber" aria-label="Amber theme"></button>
+  <button class="theme-btn tb-emerald" data-theme="emerald" aria-label="Emerald theme"></button>
+  <button class="theme-btn tb-crimson" data-theme="crimson" aria-label="Crimson theme"></button>
+</div>
+
+<div class="pay-overlay" id="payOverlay">
+  <div class="pay-modal">
+    <button class="pay-close" id="payClose" aria-label="Close">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+    </button>
+    <h3>Complete payment</h3>
+    <p class="pay-plan" id="payPlanLabel">Athlete plan</p>
+    <div class="pay-amount" id="payAmount">₹1,599 <span>/ month</span></div>
+    <p class="pay-upi-id">Paying to <code>thananjay007@okicici</code></p>
+    <div id="payQr"></div>
+    <button class="pay-app-btn" id="payAppBtn" type="button">Pay with UPI app</button>
+    <p class="pay-note">Scan the QR with any UPI app (GPay, PhonePe, Paytm) on desktop, or tap "Pay with UPI app" on mobile to open your installed app directly.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  document.querySelectorAll('.theme-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.documentElement.setAttribute('data-theme', btn.dataset.theme);
+      document.querySelectorAll('.theme-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+
+  var UPI_ID = 'thananjay007@okicici';
+  var PAYEE_NAME = 'Kinematic';
+  var qrInstance = null;
+
+  function buildUpiUri(amountInInr, note){
+    var params = new URLSearchParams({
+      pa: UPI_ID,
+      pn: PAYEE_NAME,
+      am: amountInInr.toFixed(2),
+      cu: 'INR',
+      tn: note
+    });
+    return 'upi://pay?' + params.toString();
+  }
+
+  function openPay(planLabel, amountInInr){
+    document.getElementById('payPlanLabel').textContent = planLabel;
+    document.getElementById('payAmount').innerHTML = '₹' + amountInInr.toLocaleString('en-IN') + ' <span>/ month</span>';
+
+    var uri = buildUpiUri(amountInInr, 'Kinematic ' + planLabel);
+
+    var qrBox = document.getElementById('payQr');
+    qrBox.innerHTML = '';
+    qrInstance = new QRCode(qrBox, {
+      text: uri,
+      width: 160,
+      height: 160,
+      colorDark: '#100621',
+      colorLight: '#ffffff'
+    });
+
+    document.getElementById('payAppBtn').onclick = function(){
+      window.location.href = uri;
+    };
+
+    document.getElementById('payOverlay').classList.add('open');
+  }
+
+  function closePay(){
+    document.getElementById('payOverlay').classList.remove('open');
+  }
+
+  document.getElementById('payClose').addEventListener('click', closePay);
+  document.getElementById('payOverlay').addEventListener('click', function(e){
+    if(e.target === this) closePay();
+  });
+</script>
+
+</body>
+</html>
